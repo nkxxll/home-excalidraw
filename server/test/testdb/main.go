@@ -1,0 +1,62 @@
+package main
+
+import (
+	"fmt"
+	"homeexcalidrawserver/excali"
+	"os"
+	"slices"
+)
+
+func main() {
+	db := excali.SetupDB()
+	defer db.Close()
+
+	res := db.GetAllDrawing()
+	if !slices.Equal(res, []excali.Drawing{}) {
+		fmt.Println("there is somethign wrong there is some data there that shouldnt")
+		os.Exit(1)
+	}
+
+	drawings := []excali.Drawing{
+		{
+			ID:       1,
+			Created:  "2025-05-23T10:00:00Z",
+			Modified: "2025-05-23T10:00:00Z",
+			Data:     "", // No blob data
+		},
+		{
+			ID:       2,
+			Created:  "2025-05-23T11:00:00Z",
+			Modified: "2025-05-23T11:30:00Z",
+			Data:     "{name: some, other; json}",
+		},
+		{
+			ID:       3,
+			Created:  "2025-05-23T12:00:00Z",
+			Modified: "2025-05-23T12:15:00Z",
+			Data:     "",
+		},
+	}
+
+	for _, d := range drawings {
+		err := db.SaveDrawing(d)
+		if err != nil {
+			fmt.Println("this is bad here is the error", err)
+			os.Exit(1)
+		}
+	}
+
+	drws := db.GetAllDrawing()
+
+	if len(drws) != 3 {
+		fmt.Println("three item not equals three items")
+		os.Exit(1)
+	}
+
+	for _, d := range drws {
+		fmt.Println("found drawing after saving", d.String())
+	}
+
+	db.DropDrawings()
+
+}
