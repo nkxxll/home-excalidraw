@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"homeexcalidrawserver/excali"
 	"os"
@@ -8,6 +9,9 @@ import (
 )
 
 func main() {
+	keep := flag.Bool("keep", false, "keep the db entries")
+	flag.Parse()
+	fmt.Println("Keep:", *keep)
 	db := excali.SetupDB()
 	defer db.Close()
 
@@ -50,6 +54,9 @@ func main() {
 
 	if len(drws) != 3 {
 		fmt.Println("three item not equals three items")
+		if !*keep {
+			db.DropDrawings()
+		}
 		os.Exit(1)
 	}
 
@@ -57,6 +64,7 @@ func main() {
 		fmt.Println("found drawing after saving", d.String())
 	}
 
-	db.DropDrawings()
-
+	if !*keep {
+		db.DropDrawings()
+	}
 }

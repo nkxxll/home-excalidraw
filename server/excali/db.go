@@ -30,7 +30,7 @@ func (db *Database) Close() {
 func SetupDB() Database {
 	db, err := sql.Open("sqlite3", "./test.db")
 	if err != nil {
-		slog.Error("Error Initializing the db", err.Error())
+		slog.Error(fmt.Sprint("Error Initializing the db", err.Error()))
 		os.Exit(1)
 	}
 	// TODO: setup the db
@@ -101,7 +101,7 @@ func (db Database) GetAllDrawing() []Drawing {
 			return getErrorReturn("Error scanning row", err)
 		}
 		d := NewDrawing(id, created, modified, blob)
-		slog.Info("Get returned item:", d)
+		slog.Info(fmt.Sprintf("Get returned item: %s", d.String()))
 		drawings = append(drawings, d)
 	}
 	err = rows.Err()
