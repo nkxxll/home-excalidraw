@@ -4,6 +4,7 @@ import React, {
 	useCallback,
 	Children,
 	cloneElement,
+	useEffect,
 } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
 } from "../utils";
 
 import "./ExcalidrawApp.scss";
+import DrawingsList from "./components/drawings-list";
 
 type Comment = {
 	x: number;
@@ -65,6 +67,7 @@ export default function ExampleApp({
 	const [theme, setTheme] = useState<Theme | "system">("light");
 	const [disableImageTool, setDisableImageTool] = useState(false);
 	const [isCollaborating, setIsCollaborating] = useState(false);
+	const [showSaved, setShowSaved] = useState(false);
 	const [commentIcons, setCommentIcons] = useState<{ [id: string]: Comment }>(
 		{},
 	);
@@ -117,6 +120,13 @@ export default function ExampleApp({
 						Text to diagram
 					</TTDDialogTrigger>
 				)}
+        {showSaved &&
+        <DrawingsList
+          items={["a", "b", "c"]}
+          onSelect={loadNewScene}
+          onClose={() => setShowSaved(!showSaved)}
+          />
+        }
 				<TTDDialog
 					onTextSubmit={async (_) => {
 						console.info("submit");
@@ -130,6 +140,14 @@ export default function ExampleApp({
 		);
 		return newElement;
 	};
+
+	interface Drawing {
+		id: number;
+		created: string;
+		modified: string;
+		data: object;
+	}
+
 	const renderTopRightUI = (isMobile: boolean) => {
 		return (
 			<>
@@ -142,12 +160,9 @@ export default function ExampleApp({
 					/>
 				)}
 				<button
-					className="bg-amber-50"
-					onClick={() => alert("This is an empty top right UI")}
+					onClick={() => setShowSaved(!showSaved)}
 					style={{ height: "2.5rem" }}
-				>
-					Click me
-				</button>
+				>show drawings</button>
 			</>
 		);
 	};
@@ -368,7 +383,7 @@ export default function ExampleApp({
 						custom item
 					</Button>
 				</MainMenu.ItemCustom>
-        <MainMenu.DefaultItems.ChangeCanvasBackground />
+				<MainMenu.DefaultItems.ChangeCanvasBackground />
 				<MainMenu.DefaultItems.Help />
 			</MainMenu>
 		);
