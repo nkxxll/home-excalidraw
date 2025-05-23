@@ -8,8 +8,6 @@ import (
 	"net/http"
 )
 
-type handler = func(http.ResponseWriter, *http.Request)
-
 type HttpError struct {
 	Msg   string `json:"msg"`
 	Error string `json:"error"`
@@ -29,11 +27,11 @@ func writeError(w http.ResponseWriter, msg string, err error) {
 	w.WriteHeader(500)
 }
 
-func HandleSave(db Database) handler {
+func HandleSave(db Database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			var body []byte
-			var drawing Drawing
+			var drawing SaveDrawing
 			defer r.Body.Close()
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
@@ -45,33 +43,47 @@ func HandleSave(db Database) handler {
 			json.Unmarshal(body, &drawing)
 
 			err = db.SaveDrawing(drawing)
-			slog.Info(fmt.Sprint("save body: ", string(body)))
 			slog.Info(fmt.Sprint("Saved drawing: ", drawing.String()))
 			if err != nil {
 				writeError(w, "Error saving drawing to db", err)
 				return
 			}
 
-			w.WriteHeader(200)
+			getAll(w, db)
 		} else {
 			http.Error(w, "Method not supported", 400)
 		}
 	}
 }
 
-func HandleLoad(db Database) handler {
+func getAll(w http.ResponseWriter, db Database) {
+	drawings := db.GetAllDrawing()
+	jsonString, err := json.Marshal(drawings)
+	slog.Info(fmt.Sprintf("JSON String %s", string(jsonString)))
+	if err != nil {
+		slog.Error("Error Marshaling the drawings list")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonString)
+}
+
+
+func HandleGetById(db Database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			drawings := db.GetAllDrawing()
-			jsonString, err := json.Marshal(drawings)
-			slog.Info(fmt.Sprintf("JSON String %s", string(jsonString)))
-			if err != nil {
-				slog.Error("Error Marshaling the drawings list")
-				return
-			}
 
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonString)
+	 	} else {
+			http.Error(w, "Method not supported", 400)
+		}
+	}
+}
+
+func HandleLoad(db Database) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			getAll(w, db)
 		} else {
 			http.Error(w, "Method not supported", 400)
 		}

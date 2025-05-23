@@ -14,10 +14,10 @@ type Database struct {
 }
 
 func (db Database) DropDrawings() {
-	sqlStmt := `delete from drawings`;
+	sqlStmt := `delete from drawings`
 	_, err := db.db.Exec(sqlStmt)
 	if err != nil {
-	    panic("error removing stuff")
+		panic("error removing stuff")
 	}
 }
 
@@ -44,39 +44,67 @@ func SetupDB() Database {
     `
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
-		slog.Error("Error Initializing the db", err.Error())
+		slog.Error(fmt.Sprint("Error Initializing the db", err.Error()))
 		os.Exit(1)
 	}
 	return Database{db: db}
 }
 
-func (db Database) SaveDrawing(d Drawing) error {
+func errNilGetId(msg string, err error) {
+	slog.Error(fmt.Sprint(msg, err))
+}
+
+func (db Database) GetDrawingById(id string) Drawing {
+	var did int
+	var created string
+	var modified string
+	var blob string
+	sqlQuery := fmt.Sprintf(`SELECT * FROM drawings WHERE id == %s`, id)
+	rows, err := db.db.Query(sqlQuery)
+	if err != nil {
+		errNilGetId("Error querying from database", err)
+		return NewDrawing(-1, "", "", "")
+	}
+	if rows.Next() {
+		err := rows.Scan(&did, &created, &modified, &blob)
+		if err != nil {
+		    errNilGetId("Error scanning the drawing", err)
+		}
+	}
+	if rows.Next() {
+		slog.Warn("There is one more element with this id this should not happen")
+	}
+
+	return NewDrawing(did, created, modified, blob)
+}
+
+func (db Database) SaveDrawing(d SaveDrawing) error {
 	prep := `insert into drawings(created, modified, data) values(?, ?, ?)`
 	tx, err := db.db.Begin()
 	if err != nil {
-		return fmt.Errorf("Error beginning transaction", err.Error())
+		return fmt.Errorf("Error beginning transaction %v", err.Error())
 	}
 	stmt, err := tx.Prepare(prep)
 	if err != nil {
-		return fmt.Errorf("Error getting statement", err.Error())
+		return fmt.Errorf("Error getting statement %v", err.Error())
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(d.Created, d.Modified, d.Data)
 	if err != nil {
-		return fmt.Errorf("Error executing statement", err.Error())
+		return fmt.Errorf("Error executing statement %v", err.Error())
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("Error committing transaction", err.Error())
+		return fmt.Errorf("Error committing transaction %v", err.Error())
 	}
 
 	return nil
 }
 
 func getErrorReturn(msg string, err error) []Drawing {
-	slog.Error(msg, err.Error())
+	slog.Error(fmt.Sprint(msg, err.Error()))
 
 	return []Drawing{}
 }
