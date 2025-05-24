@@ -6,8 +6,8 @@ import React, {
 	cloneElement,
 } from "react";
 
+import { Button } from "@/components/ui/button";
 import type * as TExcalidraw from "@excalidraw/excalidraw";
-import type { ImportedLibraryData } from "@excalidraw/excalidraw/data/types";
 import type {
 	NonDeletedExcalidrawElement,
 	Theme,
@@ -15,21 +15,17 @@ import type {
 import type {
 	AppState,
 	ExcalidrawImperativeAPI,
-	ExcalidrawInitialDataState,
 	Gesture,
 	PointerDownState as ExcalidrawPointerDownState,
 } from "@excalidraw/excalidraw/types";
 
 import {
-	resolvablePromise,
 	distance2d,
-	fileOpen,
 	withBatchedUpdates,
 	withBatchedUpdatesThrottled,
 } from "../utils";
 
-import "./ExcalidrawApp.scss"
-import type { ResolvablePromise } from "../utils";
+import "./ExcalidrawApp.scss";
 
 type Comment = {
 	x: number;
@@ -38,32 +34,15 @@ type Comment = {
 	id?: string;
 };
 
-type PointerDownState = {
-	x: number;
-	y: number;
-	hitElement: Comment;
-	onMove: any;
-	onUp: any;
-	hitElementOffsets: {
-		x: number;
-		y: number;
-	};
-};
-
-const APP_STATE = { viewBackgroundColor: "#AFEEEE", currentItemFontFamily: 5 };
-
 export interface AppProps {
-	appTitle: string;
-	useCustom: (api: ExcalidrawImperativeAPI | null, customArgs?: any[]) => void;
+	initialData: null | any;
 	customArgs?: any[];
 	children: React.ReactNode;
 	excalidrawLib: typeof TExcalidraw;
 }
 
 export default function ExampleApp({
-	appTitle,
-	useCustom,
-	customArgs,
+	initialData,
 	children,
 	excalidrawLib,
 }: AppProps) {
@@ -83,7 +62,7 @@ export default function ExampleApp({
 	const [zenModeEnabled, setZenModeEnabled] = useState(false);
 	const [gridModeEnabled, setGridModeEnabled] = useState(false);
 	const [renderScrollbars, setRenderScrollbars] = useState(false);
-	const [theme, setTheme] = useState<Theme>("light");
+	const [theme, setTheme] = useState<Theme | "system">("light");
 	const [disableImageTool, setDisableImageTool] = useState(false);
 	const [isCollaborating, setIsCollaborating] = useState(false);
 	const [commentIcons, setCommentIcons] = useState<{ [id: string]: Comment }>(
@@ -93,8 +72,6 @@ export default function ExampleApp({
 
 	const [excalidrawAPI, setExcalidrawAPI] =
 		useState<ExcalidrawImperativeAPI | null>(null);
-
-	useCustom(excalidrawAPI, customArgs);
 
 	useHandleLibrary({ excalidrawAPI });
 
@@ -113,18 +90,7 @@ export default function ExampleApp({
 			Excalidraw,
 			{
 				excalidrawAPI: (api: ExcalidrawImperativeAPI) => setExcalidrawAPI(api),
-				initialData: null,
-				onChange: (
-					elements: NonDeletedExcalidrawElement[],
-					state: AppState,
-				) => {
-					console.info("Elements :", elements, "State : ", state);
-				},
-				onPointerUpdate: (payload: {
-					pointer: { x: number; y: number };
-					button: "down" | "up";
-					pointersMap: Gesture["pointers"];
-				}) => setPointerData(payload),
+				initialData: initialData,
 				viewModeEnabled,
 				zenModeEnabled,
 				renderScrollbars,
@@ -133,7 +99,7 @@ export default function ExampleApp({
 				name: "Custom name of drawing",
 				UIOptions: {
 					canvasActions: {
-						loadScene: false,
+						loadScene: true,
 					},
 					tools: { image: !disableImageTool },
 				},
@@ -176,6 +142,7 @@ export default function ExampleApp({
 					/>
 				)}
 				<button
+					className="bg-amber-50"
 					onClick={() => alert("This is an empty top right UI")}
 					style={{ height: "2.5rem" }}
 				>
@@ -376,25 +343,32 @@ export default function ExampleApp({
 	const renderMenu = () => {
 		return (
 			<MainMenu>
+				<MainMenu.DefaultItems.ToggleTheme
+					allowSystemTheme
+					theme={theme}
+					onSelect={(t: Theme | "system") => setTheme(t)}
+				/>
 				<MainMenu.DefaultItems.SaveAsImage />
+				<MainMenu.DefaultItems.SaveToActiveFile />
 				<MainMenu.DefaultItems.Export />
+				<MainMenu.DefaultItems.ClearCanvas />
+				<MainMenu.DefaultItems.SearchMenu />
 				<MainMenu.Separator />
 				<MainMenu.DefaultItems.LiveCollaborationTrigger
 					isCollaborating={isCollaborating}
 					onSelect={() => window.alert("You clicked on collab button")}
 				/>
-				<MainMenu.Group title="Excalidraw links">
-					<MainMenu.DefaultItems.Socials />
-				</MainMenu.Group>
 				<MainMenu.Separator />
+				<MainMenu.DefaultItems.LoadScene />
 				<MainMenu.ItemCustom>
-					<button
+					<Button
 						style={{ height: "2rem" }}
 						onClick={() => window.alert("custom menu item")}
 					>
 						custom item
-					</button>
+					</Button>
 				</MainMenu.ItemCustom>
+        <MainMenu.DefaultItems.ChangeCanvasBackground />
 				<MainMenu.DefaultItems.Help />
 			</MainMenu>
 		);

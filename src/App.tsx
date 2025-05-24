@@ -4,7 +4,7 @@ import "@excalidraw/excalidraw/index.css";
 
 import type * as TExcalidraw from "@excalidraw/excalidraw";
 
-import ExcalidrawApp from "./ExcalidrawApp.tsx";
+import ExampleApp from "./ExcalidrawApp.tsx";
 
 declare global {
 	interface Window {
@@ -12,19 +12,14 @@ declare global {
 	}
 }
 
-
 export default function App() {
-  const { Excalidraw } = window.ExcalidrawLib;
+	const { Excalidraw } = window.ExcalidrawLib;
 	return (
 		<>
 			<StrictMode>
-				<ExcalidrawApp
-					appTitle={"Excalidraw Example"}
-					useCustom={(api: any, args?: any[]) => {}}
-					excalidrawLib={window.ExcalidrawLib}
-				>
+				<ExampleApp excalidrawLib={window.ExcalidrawLib}>
 					<Excalidraw />
-				</ExcalidrawApp>
+				</ExampleApp>
 			</StrictMode>
 			,
 		</>
