@@ -4,12 +4,12 @@ import React, {
 	useCallback,
 	Children,
 	cloneElement,
-	useEffect,
 } from "react";
 
 import { Button } from "@/components/ui/button";
 import type * as TExcalidraw from "@excalidraw/excalidraw";
 import type {
+	ExcalidrawElement,
 	NonDeletedExcalidrawElement,
 	Theme,
 } from "@excalidraw/excalidraw/element/types";
@@ -18,6 +18,7 @@ import type {
 	ExcalidrawImperativeAPI,
 	Gesture,
 	PointerDownState as ExcalidrawPointerDownState,
+	BinaryFiles,
 } from "@excalidraw/excalidraw/types";
 
 import {
@@ -28,8 +29,18 @@ import {
 
 import "./ExcalidrawApp.scss";
 import DrawingsList from "./components/drawings-list";
-import { useQuery } from "@tanstack/react-query";
-import { fetchLoadData } from "./lib/api";
+import {
+	useQuery,
+	useMutation,
+	type UseMutationResult,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { fetchLoadData, fetchSaveData } from "./lib/api";
+import {
+	loadFromBlob,
+	MIME_TYPES,
+	serializeAsJSON,
+} from "@excalidraw/excalidraw";
 
 type Comment = {
 	x: number;
@@ -45,9 +56,31 @@ export interface AppProps {
 	excalidrawLib: typeof TExcalidraw;
 }
 
-function loadNewScene(item: any) {
-	alert("loaded new scene");
-  console.log(item);
+async function saveDrawing(
+	mutation: UseMutationResult<void, Error, string, unknown>,
+	elements: readonly ExcalidrawElement[],
+	appState: Partial<AppState>,
+	files: BinaryFiles,
+) {
+	const localJson = serializeAsJSON(elements, appState, files, "local");
+	console.log("localJson", localJson);
+	mutation.mutate(localJson);
+}
+
+async function loadNewScene(item: string, api: ExcalidrawImperativeAPI | null) {
+	if (!api) {
+		console.error("api is null");
+		return;
+	}
+	console.log(item);
+	const blob = new Blob([item], {
+		type: MIME_TYPES.excalidraw,
+	});
+
+	const scene = await loadFromBlob(blob, null, null);
+
+	api.updateScene(scene);
+	console.log("updated scene");
 }
 
 export default function ExampleApp({
@@ -83,10 +116,23 @@ export default function ExampleApp({
 	const [excalidrawAPI, setExcalidrawAPI] =
 		useState<ExcalidrawImperativeAPI | null>(null);
 
-  const { data: drawingsItems, isPending, isError } = useQuery({
-    queryKey: ['loadDrawings'],
-    queryFn: fetchLoadData,
-  }) 
+	const queryClient = useQueryClient();
+	const {
+		data: drawingsItems,
+		isPending,
+		isError,
+	} = useQuery({
+		queryKey: ["loadDrawings"],
+		queryFn: fetchLoadData,
+	});
+
+	const mutation = useMutation({
+		mutationKey: ["saveDrawing"],
+		mutationFn: fetchSaveData,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["loadDrawings"] }); // refresh list
+		},
+	});
 
 	useHandleLibrary({ excalidrawAPI });
 
@@ -135,7 +181,7 @@ export default function ExampleApp({
 				{showSaved && (
 					<DrawingsList
 						items={drawingsItems}
-						onSelect={(item: any) => (loadNewScene(item))}
+						onSubmit={(item) => loadNewScene(item, excalidrawAPI)}
 						onClose={() => setShowSaved(!showSaved)}
 					/>
 				)}
@@ -174,11 +220,28 @@ export default function ExampleApp({
 				<button
 					onClick={() => {
 						setShowSaved(!showSaved);
-            console.log("showSaved", showSaved);
+						console.log("showSaved", showSaved);
 					}}
 					style={{ height: "2.5rem" }}
 				>
 					show drawings
+				</button>
+				<button
+					type="button"
+					onClick={() => {
+						if (!excalidrawAPI) {
+							return;
+						}
+						saveDrawing(
+							mutation,
+							excalidrawAPI.getSceneElements(),
+							excalidrawAPI.getAppState(),
+							excalidrawAPI.getFiles(),
+						);
+					}}
+					style={{ height: "2.5rem" }}
+				>
+					save drawing
 				</button>
 			</>
 		);
