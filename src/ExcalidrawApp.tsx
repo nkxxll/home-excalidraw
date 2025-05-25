@@ -28,6 +28,8 @@ import {
 
 import "./ExcalidrawApp.scss";
 import DrawingsList from "./components/drawings-list";
+import { useQuery } from "@tanstack/react-query";
+import { fetchLoadData } from "./lib/api";
 
 type Comment = {
 	x: number;
@@ -43,7 +45,7 @@ export interface AppProps {
 	excalidrawLib: typeof TExcalidraw;
 }
 
-function loadNewScene(item: string) {
+function loadNewScene(item: any) {
 	alert("loaded new scene");
   console.log(item);
 }
@@ -80,6 +82,11 @@ export default function ExampleApp({
 
 	const [excalidrawAPI, setExcalidrawAPI] =
 		useState<ExcalidrawImperativeAPI | null>(null);
+
+  const { data: drawingsItems, isPending, isError } = useQuery({
+    queryKey: ['loadDrawings'],
+    queryFn: fetchLoadData,
+  }) 
 
 	useHandleLibrary({ excalidrawAPI });
 
@@ -127,8 +134,8 @@ export default function ExampleApp({
 				)}
 				{showSaved && (
 					<DrawingsList
-						items={["a", "b", "c"]}
-						onSelect={(item) => (loadNewScene(item))}
+						items={drawingsItems}
+						onSelect={(item: any) => (loadNewScene(item))}
 						onClose={() => setShowSaved(!showSaved)}
 					/>
 				)}

@@ -13,7 +13,7 @@ export default function DrawingsList({
 		<div className="fixed top-0 right-0 left-0 w-1/2 z-10">
 			<ul>
 				{items.map((item, idx) => {
-					return <li key={`${item}-${idx}`}>{item}</li>;
+					return <li key={`${item.ID}`}>{`${item.ID} ${item.Created} ${item.Modified} ${item.Data}`}</li>;
 				})}
 			</ul>
 		</div>
