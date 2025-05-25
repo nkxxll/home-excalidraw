@@ -43,6 +43,11 @@ export interface AppProps {
 	excalidrawLib: typeof TExcalidraw;
 }
 
+function loadNewScene(item: string) {
+	alert("loaded new scene");
+  console.log(item);
+}
+
 export default function ExampleApp({
 	initialData,
 	children,
@@ -120,13 +125,13 @@ export default function ExampleApp({
 						Text to diagram
 					</TTDDialogTrigger>
 				)}
-        {showSaved &&
-        <DrawingsList
-          items={["a", "b", "c"]}
-          onSelect={loadNewScene}
-          onClose={() => setShowSaved(!showSaved)}
-          />
-        }
+				{showSaved && (
+					<DrawingsList
+						items={["a", "b", "c"]}
+						onSelect={(item) => (loadNewScene(item))}
+						onClose={() => setShowSaved(!showSaved)}
+					/>
+				)}
 				<TTDDialog
 					onTextSubmit={async (_) => {
 						console.info("submit");
@@ -160,9 +165,14 @@ export default function ExampleApp({
 					/>
 				)}
 				<button
-					onClick={() => setShowSaved(!showSaved)}
+					onClick={() => {
+						setShowSaved(!showSaved);
+            console.log("showSaved", showSaved);
+					}}
 					style={{ height: "2.5rem" }}
-				>show drawings</button>
+				>
+					show drawings
+				</button>
 			</>
 		);
 	};
