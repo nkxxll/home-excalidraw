@@ -3,18 +3,18 @@ package excali
 import "fmt"
 
 type Drawing struct {
-	ID       int    `db:"id"`
-	Created  string `db:"created"`
-	Modified string `db:"modified"`
-	Data     string `db:"data"`
+	ID       int    `db:"id" json:"id"`
+	Created  string `db:"created" json:"created"`
+	Modified string `db:"modified" json:"modified"`
+	Data     string `db:"data" json:"data"`
 }
 
 // SaveDrawing this is a helper struct that only misses the id because the id
 // is auto generated for saving drawings
 type SaveDrawing struct {
-	Created  string `db:"created"`
-	Modified string `db:"modified"`
-	Data     string `db:"data"`
+	Created  string `db:"created" json:"created"`
+	Modified string `db:"modified" json:"modified"`
+	Data     string `db:"data" json:"data"`
 }
 
 func NewDrawing(id int, created, modified string, data string) Drawing {
