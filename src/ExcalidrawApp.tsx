@@ -7,7 +7,6 @@ import React, {
 } from "react";
 
 import { Button } from "@/components/ui/button";
-import type * as TExcalidraw from "@excalidraw/excalidraw";
 import type {
 	ExcalidrawElement,
 	NonDeletedExcalidrawElement,
@@ -35,45 +34,61 @@ import {
 	type UseMutationResult,
 	useQueryClient,
 } from "@tanstack/react-query";
-import { fetchLoadData, fetchSaveData } from "./lib/api";
+import {
+	fetchDeleteData,
+	fetchLoadData,
+	fetchSaveData,
+	fetchUpdateData,
+	type SaveDataProps,
+	type UpdateDataProps,
+} from "./lib/api";
 import {
 	loadFromBlob,
 	MIME_TYPES,
 	serializeAsJSON,
 } from "@excalidraw/excalidraw";
+import type { AppProps, Comment, Drawing } from "@/lib/types";
+import { EnterTitle } from "./components/enter-title";
 
-type Comment = {
-	x: number;
-	y: number;
-	value: string;
-	id?: string;
-};
-
-export interface AppProps {
-	initialData: null | any;
-	customArgs?: any[];
-	children: React.ReactNode;
-	excalidrawLib: typeof TExcalidraw;
-}
-
-async function saveDrawing(
-	mutation: UseMutationResult<void, Error, string, unknown>,
+async function saveNewDrawing(
+	mutation: UseMutationResult<void, Error, SaveDataProps, unknown>,
+	title: string,
 	elements: readonly ExcalidrawElement[],
 	appState: Partial<AppState>,
 	files: BinaryFiles,
 ) {
 	const localJson = serializeAsJSON(elements, appState, files, "local");
 	console.log("localJson", localJson);
-	mutation.mutate(localJson);
+	mutation.mutate({ title: title, data: localJson });
 }
 
-async function loadNewScene(item: string, api: ExcalidrawImperativeAPI | null) {
+function updateDrawing(
+	mutation: UseMutationResult<void, Error, UpdateDataProps, unknown>,
+	item: Drawing,
+	elements: readonly ExcalidrawElement[],
+	appState: Partial<AppState>,
+	files: BinaryFiles,
+	newTitle: string | null = null,
+) {
+	const title = newTitle ? newTitle : item.title;
+	const data = serializeAsJSON(elements, appState, files, "local");
+	const newItem = {
+		id: item.id,
+		title,
+		data,
+		created: item.created,
+		modified: new Date().toISOString(),
+	};
+	console.log("newItem", newItem);
+	mutation.mutate({ item: newItem });
+}
+
+async function loadNewScene(data: string, api: ExcalidrawImperativeAPI | null) {
 	if (!api) {
 		console.error("api is null");
 		return;
 	}
-	console.log(item);
-	const blob = new Blob([item], {
+	const blob = new Blob([data], {
 		type: MIME_TYPES.excalidraw,
 	});
 
@@ -100,17 +115,14 @@ export default function ExampleApp({
 		TTDDialogTrigger,
 	} = excalidrawLib;
 	const appRef = useRef<any>(null);
-	const [viewModeEnabled, setViewModeEnabled] = useState(false);
-	const [zenModeEnabled, setZenModeEnabled] = useState(false);
-	const [gridModeEnabled, setGridModeEnabled] = useState(false);
-	const [renderScrollbars, setRenderScrollbars] = useState(false);
 	const [theme, setTheme] = useState<Theme | "system">("light");
-	const [disableImageTool, setDisableImageTool] = useState(false);
-	const [isCollaborating, setIsCollaborating] = useState(false);
 	const [showSaved, setShowSaved] = useState(false);
+	const [showEnterTitle, setShowEnterTitle] = useState(false);
+	const [currentSceneID, setCurrentSceneID] = useState<number | null>(null);
 	const [commentIcons, setCommentIcons] = useState<{ [id: string]: Comment }>(
 		{},
 	);
+	const [currentTitle, setCurrentTitle] = useState("");
 	const [comment, setComment] = useState<Comment | null>(null);
 
 	const [excalidrawAPI, setExcalidrawAPI] =
@@ -126,9 +138,39 @@ export default function ExampleApp({
 		queryFn: fetchLoadData,
 	});
 
-	const mutation = useMutation({
+	const saveMutation = useMutation({
 		mutationKey: ["saveDrawing"],
 		mutationFn: fetchSaveData,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["loadDrawings"] }); // refresh list
+		},
+	});
+
+	function handleTitleSubmit(title: string) {
+		if (!excalidrawAPI) {
+			console.error("api is null");
+			return;
+		}
+		saveNewDrawing(
+			saveMutation,
+			title,
+			excalidrawAPI.getSceneElements(),
+			excalidrawAPI.getAppState(),
+			excalidrawAPI.getFiles(),
+		);
+	}
+
+	const updateMutation = useMutation({
+		mutationKey: ["updateDrawing"],
+		mutationFn: fetchUpdateData,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["loadDrawings"] }); // refresh list
+		},
+	});
+
+	const deleteMutation = useMutation({
+		mutationKey: ["deleteDrawing"],
+		mutationFn: fetchDeleteData,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["loadDrawings"] }); // refresh list
 		},
@@ -152,17 +194,13 @@ export default function ExampleApp({
 			{
 				excalidrawAPI: (api: ExcalidrawImperativeAPI) => setExcalidrawAPI(api),
 				initialData: initialData,
-				viewModeEnabled,
-				zenModeEnabled,
-				renderScrollbars,
-				gridModeEnabled,
 				theme,
 				name: "Custom name of drawing",
 				UIOptions: {
 					canvasActions: {
 						loadScene: true,
 					},
-					tools: { image: !disableImageTool },
+					tools: { image: true },
 				},
 				renderTopRightUI,
 				onLinkOpen,
@@ -178,10 +216,21 @@ export default function ExampleApp({
 						Text to diagram
 					</TTDDialogTrigger>
 				)}
+				{showEnterTitle && (
+					<EnterTitle
+						open={showEnterTitle}
+						setOpen={setShowEnterTitle}
+						onSubmit={handleTitleSubmit}
+						triggerLabel={"Enter a Title"}
+					/>
+				)}
 				{showSaved && (
 					<DrawingsList
 						items={drawingsItems}
-						onSubmit={(item) => loadNewScene(item, excalidrawAPI)}
+						onSubmit={(id: number, item: string) => {
+							setCurrentSceneID(id);
+							return loadNewScene(item, excalidrawAPI);
+						}}
 						onClose={() => setShowSaved(!showSaved)}
 					/>
 				)}
@@ -199,28 +248,21 @@ export default function ExampleApp({
 		return newElement;
 	};
 
-	interface Drawing {
-		id: number;
-		created: string;
-		modified: string;
-		data: object;
-	}
-
 	const renderTopRightUI = (isMobile: boolean) => {
 		return (
 			<>
 				{!isMobile && (
 					<LiveCollaborationTrigger
-						isCollaborating={isCollaborating}
+						isCollaborating={false}
 						onSelect={() => {
 							window.alert("Collab dialog clicked");
 						}}
 					/>
 				)}
+				<span>{currentSceneID}</span>
 				<button
 					onClick={() => {
 						setShowSaved(!showSaved);
-						console.log("showSaved", showSaved);
 					}}
 					style={{ height: "2.5rem" }}
 				>
@@ -232,8 +274,12 @@ export default function ExampleApp({
 						if (!excalidrawAPI) {
 							return;
 						}
-						saveDrawing(
-							mutation,
+						const item = drawingsItems.filter(
+							(item: Drawing) => item.id === currentSceneID,
+						);
+						updateDrawing(
+							updateMutation,
+							item,
 							excalidrawAPI.getSceneElements(),
 							excalidrawAPI.getAppState(),
 							excalidrawAPI.getFiles(),
@@ -242,6 +288,18 @@ export default function ExampleApp({
 					style={{ height: "2.5rem" }}
 				>
 					save drawing
+				</button>
+				<button
+					type="button"
+					onClick={() => {
+						if (!excalidrawAPI) {
+							return;
+						}
+						setShowEnterTitle(true);
+					}}
+					style={{ height: "2.5rem" }}
+				>
+					new scene
 				</button>
 			</>
 		);
@@ -450,7 +508,7 @@ export default function ExampleApp({
 				<MainMenu.DefaultItems.SearchMenu />
 				<MainMenu.Separator />
 				<MainMenu.DefaultItems.LiveCollaborationTrigger
-					isCollaborating={isCollaborating}
+					isCollaborating={false}
 					onSelect={() => window.alert("You clicked on collab button")}
 				/>
 				<MainMenu.Separator />

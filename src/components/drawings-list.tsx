@@ -5,11 +5,12 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { Button } from "./ui/button";
+import type { Drawing } from "@/lib/types";
 
 interface DrawingsListParms {
 	items: any[];
 	onClose: () => void;
-	onSubmit: (item: string) => Promise<void>;
+	onSubmit: (id: number, item: string) => Promise<void>;
 }
 
 interface DrawingsItem {
@@ -48,7 +49,7 @@ export default function DrawingsList({
 			id: "actions",
 			header: "Actions",
 			cell: ({ row }) => (
-				<Button onClick={() => onSubmit(row.original.data)}>Load</Button>
+				<Button onClick={() => onSubmit(row.original.id, row.original.data)}>Load</Button>
 			),
 		}),
 	];

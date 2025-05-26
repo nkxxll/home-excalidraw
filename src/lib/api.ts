@@ -2,6 +2,8 @@
  * here come the api functions
  */
 
+import type { Drawing } from "./types";
+
 export async function fetchLoadData() {
 	const res = await fetch("/api/load");
 
@@ -12,9 +14,23 @@ export async function fetchLoadData() {
 	return res.json();
 }
 
-export async function fetchSaveData(data: string) {
+export interface SaveDataProps {
+	title: string;
+	data: string;
+}
+
+export interface DeleteDataProps {
+  id: number
+}
+
+export interface UpdateDataProps {
+  item: Drawing;
+}
+
+
+export async function fetchSaveData({title, data}: SaveDataProps) {
 	const body = JSON.stringify({
-    title: "<New Drawing>",
+		title: title,
 		created: new Date().toISOString(),
 		modified: new Date().toISOString(),
 		data,
@@ -22,5 +38,20 @@ export async function fetchSaveData(data: string) {
 	const res = await fetch("/api/save", { method: "POST", body });
 	if (!res.ok) {
 		throw new Error("Failed to save data");
+	}
+}
+
+export async function fetchUpdateData({item}: UpdateDataProps) {
+	const body = JSON.stringify(item);
+	const res = await fetch(`/api/update/${item.id}`, { method: "PUT", body });
+	if (!res.ok) {
+		throw new Error("Failed to update data");
+	}
+}
+
+export async function fetchDeleteData({id}: DeleteDataProps) {
+	const res = await fetch(`/api/delete/${id}`, { method: "DELETE" });
+	if (!res.ok) {
+		throw new Error("Failed to delete data");
 	}
 }

@@ -32,3 +32,13 @@
   find a new id for that scene then
 - `useState<any | null>(currentScene, ..)` and then we can just change that if needed
 - I also need to add a scene title
+
+## i shouldn't be able to save empty
+
+- it makes not sense to be able to save empty elements
+- there should be an error message for that
+
+## viewport width and height
+
+- the viewport width does not fit to the view port lol
+- fix it
