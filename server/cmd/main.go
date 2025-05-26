@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	db := excali.SetupDB()
+	db := excali.SetupDB("local.db")
 	defer db.Close()
 
 	http.HandleFunc("/save", excali.HandleSave(db))

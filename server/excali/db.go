@@ -27,8 +27,8 @@ func (db *Database) Close() {
 
 // SetupDB - returns the db handle for the application and sets up the database
 // remember that you have to close the thing for best practice
-func SetupDB() Database {
-	db, err := sql.Open("sqlite3", "./test.db")
+func SetupDB(file string) Database {
+	db, err := sql.Open("sqlite3", file)
 	if err != nil {
 		slog.Error(fmt.Sprint("Error Initializing the db", err.Error()))
 		os.Exit(1)
@@ -37,6 +37,7 @@ func SetupDB() Database {
 	sqlStmt := `
     CREATE TABLE IF NOT EXISTS drawings (
         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		title TEXT,
 		created TEXT,
 		modified TEXT,
         data TEXT
@@ -56,6 +57,7 @@ func errNilGetId(msg string, err error) {
 
 func (db Database) GetDrawingById(id string) Drawing {
 	var did int
+	var title string
 	var created string
 	var modified string
 	var blob string
@@ -63,23 +65,23 @@ func (db Database) GetDrawingById(id string) Drawing {
 	rows, err := db.db.Query(sqlQuery)
 	if err != nil {
 		errNilGetId("Error querying from database", err)
-		return NewDrawing(-1, "", "", "")
+		return NewDrawing(-1, "", "", "", "")
 	}
 	if rows.Next() {
-		err := rows.Scan(&did, &created, &modified, &blob)
+		err := rows.Scan(&did, &title, &created, &modified, &blob)
 		if err != nil {
-		    errNilGetId("Error scanning the drawing", err)
+			errNilGetId("Error scanning the drawing", err)
 		}
 	}
 	if rows.Next() {
 		slog.Warn("There is one more element with this id this should not happen")
 	}
 
-	return NewDrawing(did, created, modified, blob)
+	return NewDrawing(did, title, created, modified, blob)
 }
 
 func (db Database) SaveDrawing(d SaveDrawing) error {
-	prep := `insert into drawings(created, modified, data) values(?, ?, ?)`
+	prep := `insert into drawings(title, created, modified, data) values(?, ?, ?, ?)`
 	tx, err := db.db.Begin()
 	if err != nil {
 		return fmt.Errorf("Error beginning transaction %v", err.Error())
@@ -90,7 +92,7 @@ func (db Database) SaveDrawing(d SaveDrawing) error {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.Created, d.Modified, d.Data)
+	_, err = stmt.Exec(d.Title, d.Created, d.Modified, d.Data)
 	if err != nil {
 		return fmt.Errorf("Error executing statement %v", err.Error())
 	}
@@ -121,14 +123,15 @@ func (db Database) GetAllDrawing() []Drawing {
 
 	for rows.Next() {
 		var id int
+		var title string
 		var created string
 		var modified string
 		var blob string
-		err = rows.Scan(&id, &created, &modified, &blob)
+		err = rows.Scan(&id, &title, &created, &modified, &blob)
 		if err != nil {
 			return getErrorReturn("Error scanning row", err)
 		}
-		d := NewDrawing(id, created, modified, blob)
+		d := NewDrawing(id, title, created, modified, blob)
 		slog.Info(fmt.Sprintf("Get returned item: %s", d.String()))
 		drawings = append(drawings, d)
 	}

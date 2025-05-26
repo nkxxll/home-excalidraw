@@ -21,7 +21,7 @@ func main() {
 	flag.Parse()
 	if *save {
 		url := "http://localhost:42069/save"
-		d := excali.NewDrawing(1, "2025-05-23 21:11", "2025-05-23 21:11", "{\"some\": \"json\"}")
+		d := excali.NewDrawing(1, "some title", "2025-05-23 21:11", "2025-05-23 21:11", "{\"some\": \"json\"}")
 		body, err := json.Marshal(d)
 		if err != nil {
 			errExit("marshaling should not happen")

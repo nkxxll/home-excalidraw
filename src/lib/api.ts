@@ -14,6 +14,7 @@ export async function fetchLoadData() {
 
 export async function fetchSaveData(data: string) {
 	const body = JSON.stringify({
+    title: "<New Drawing>",
 		created: new Date().toISOString(),
 		modified: new Date().toISOString(),
 		data,
