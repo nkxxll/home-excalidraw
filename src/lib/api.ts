@@ -43,7 +43,7 @@ export async function fetchSaveData({title, data}: SaveDataProps) {
 
 export async function fetchUpdateData({item}: UpdateDataProps) {
 	const body = JSON.stringify(item);
-	const res = await fetch(`/api/update/${item.id}`, { method: "PUT", body });
+	const res = await fetch(`/api/update`, { method: "PUT", body });
 	if (!res.ok) {
 		throw new Error("Failed to update data");
 	}

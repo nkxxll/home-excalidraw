@@ -141,7 +141,8 @@ export default function ExampleApp({
 	const saveMutation = useMutation({
 		mutationKey: ["saveDrawing"],
 		mutationFn: fetchSaveData,
-		onSuccess: () => {
+		onSuccess: (data) => {
+      console.log("data", data);
 			queryClient.invalidateQueries({ queryKey: ["loadDrawings"] }); // refresh list
 		},
 	});
@@ -274,9 +275,10 @@ export default function ExampleApp({
 						if (!excalidrawAPI) {
 							return;
 						}
-						const item = drawingsItems.filter(
+						const item: Drawing = drawingsItems.find(
 							(item: Drawing) => item.id === currentSceneID,
 						);
+            console.log(item);
 						updateDrawing(
 							updateMutation,
 							item,

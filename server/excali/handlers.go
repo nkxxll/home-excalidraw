@@ -6,11 +6,31 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 )
 
 type HttpError struct {
 	Msg   string `json:"msg"`
 	Error string `json:"error"`
+}
+
+func HandleUpdate(db Database) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body []byte
+		var drawing Drawing
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			writeError(w, "Error Unmarshal:", err)
+		}
+		json.Unmarshal(body, &drawing)
+
+		err = db.UpdateDrawing(drawing)
+		if err != nil {
+			writeError(w, "Error updating the database", err)
+		}
+		w.WriteHeader(200)
+	}
 }
 
 func NewHttpError(msg string, err error) HttpError {
@@ -42,14 +62,14 @@ func HandleSave(db Database) http.HandlerFunc {
 			// this could be bad because of the id or we use uuid
 			json.Unmarshal(body, &drawing)
 
-			err = db.SaveDrawing(drawing)
+			id, err := db.SaveDrawing(drawing)
 			slog.Info(fmt.Sprint("Saved drawing: ", drawing.String()))
 			if err != nil {
 				writeError(w, "Error saving drawing to db", err)
 				return
 			}
 
-			getAll(w, db)
+			w.Write([]byte(strconv.Itoa(id)))
 		} else {
 			http.Error(w, "Method not supported", 400)
 		}
@@ -69,12 +89,10 @@ func getAll(w http.ResponseWriter, db Database) {
 	w.Write(jsonString)
 }
 
-
 func HandleGetById(db Database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-
-	 	} else {
+		} else {
 			http.Error(w, "Method not supported", 400)
 		}
 	}

@@ -42,3 +42,7 @@
 
 - the viewport width does not fit to the view port lol
 - fix it
+
+## add scroll and search to scenes
+
+- yes

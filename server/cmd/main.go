@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"github.com/gorilla/mux"
 	"homeexcalidrawserver/excali"
+	"net/http"
 )
 
 func main() {
@@ -11,12 +12,15 @@ func main() {
 	db := excali.SetupDB("local.db")
 	defer db.Close()
 
-	http.HandleFunc("/save", excali.HandleSave(db))
-	http.HandleFunc("/load", excali.HandleLoad(db))
+	r := mux.NewRouter()
 
-	err := http.ListenAndServe(":42069", nil)
+	r.HandleFunc("/save", excali.HandleSave(db)).Methods("POST")
+	r.HandleFunc("/load", excali.HandleLoad(db)).Methods("GET")
+	r.HandleFunc("/update", excali.HandleUpdate(db)).Methods("PUT")
+
+	err := http.ListenAndServe(":42069", r)
 	if err != nil {
 		fmt.Println("Error occurred running the server", err)
-		return;
+		return
 	}
 }

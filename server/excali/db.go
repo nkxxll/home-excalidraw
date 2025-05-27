@@ -80,7 +80,32 @@ func (db Database) GetDrawingById(id string) Drawing {
 	return NewDrawing(did, title, created, modified, blob)
 }
 
-func (db Database) SaveDrawing(d SaveDrawing) error {
+func (db Database) UpdateDrawing(d Drawing) error {
+	sqlQuery := `UPDATE drawings SET title = ?, modified = ?, data = ? WHERE id == ?;`
+	tx, err := db.db.Begin()
+	if err != nil {
+		return fmt.Errorf("Error beginning transaction %v", err.Error())
+	}
+	stmt, err := tx.Prepare(sqlQuery)
+	if err != nil {
+		return fmt.Errorf("Error getting statement %v", err.Error())
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(d.Title, d.Modified, d.Data, d.ID)
+	if err != nil {
+		return fmt.Errorf("Error executing statement %v", err.Error())
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("Error committing transaction %v", err.Error())
+	}
+
+	return nil
+}
+
+func (db Database) insert(d SaveDrawing) error {
 	prep := `insert into drawings(title, created, modified, data) values(?, ?, ?, ?)`
 	tx, err := db.db.Begin()
 	if err != nil {
@@ -101,8 +126,46 @@ func (db Database) SaveDrawing(d SaveDrawing) error {
 	if err != nil {
 		return fmt.Errorf("Error committing transaction %v", err.Error())
 	}
-
 	return nil
+}
+
+func (db Database) last_insert_rowid() (int, error) {
+	query := `select last_insert_rowid();`
+	rows, err := db.db.Query(query)
+	if err != nil {
+		return -1, fmt.Errorf("Error querying the database %v", err.Error())
+	}
+
+	defer rows.Close()
+
+	var id int
+	if rows.Next() {
+		err := rows.Scan(&id)
+		if err != nil {
+			return -1, fmt.Errorf("Error scanning row %v", err.Error())
+		}
+	} else {
+		return -1, fmt.Errorf("No id found this should never happen")
+	}
+
+	if rows.Next() {
+		return -1, fmt.Errorf("This should never happen there should always only be one return value here")
+	}
+
+	return id, nil
+}
+
+func (db Database) SaveDrawing(d SaveDrawing) (int, error) {
+	err := db.insert(d)
+	if err != nil {
+		return -1, err
+	}
+	id, err := db.last_insert_rowid()
+	if err != nil {
+		return -1, err
+	}
+
+	return id, nil
 }
 
 func getErrorReturn(msg string, err error) []Drawing {

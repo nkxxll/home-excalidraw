@@ -23,19 +23,19 @@ func main() {
 
 	drawings := []excali.SaveDrawing{
 		{
-			Title:  "some title",
+			Title:    "some title",
 			Created:  "2025-05-23T10:00:00Z",
 			Modified: "2025-05-23T10:00:00Z",
 			Data:     "", // No blob data
 		},
 		{
-			Title:  "some title",
+			Title:    "some title",
 			Created:  "2025-05-23T11:00:00Z",
 			Modified: "2025-05-23T11:30:00Z",
 			Data:     "{name: some, other; json}",
 		},
 		{
-			Title:  "some title",
+			Title:    "some title",
 			Created:  "2025-05-23T12:00:00Z",
 			Modified: "2025-05-23T12:15:00Z",
 			Data:     "",
