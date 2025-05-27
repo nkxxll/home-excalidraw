@@ -13,6 +13,15 @@ type Database struct {
 	db *sql.DB
 }
 
+func (db Database) DeleteDrawing(id int) error {
+	sqlStmt := fmt.Sprintf(`delete from drawings where id == %d`, id)
+	_, err := db.db.Exec(sqlStmt)
+	if err != nil {
+		return fmt.Errorf("Error deleting drawing from database", err)
+	}
+	return nil
+}
+
 func (db Database) DropDrawings() {
 	sqlStmt := `delete from drawings`
 	_, err := db.db.Exec(sqlStmt)

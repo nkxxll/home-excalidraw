@@ -83,21 +83,6 @@ function updateDrawing(
 	mutation.mutate({ item: newItem });
 }
 
-async function loadNewScene(data: string, api: ExcalidrawImperativeAPI | null) {
-	if (!api) {
-		console.error("api is null");
-		return;
-	}
-	const blob = new Blob([data], {
-		type: MIME_TYPES.excalidraw,
-	});
-
-	const scene = await loadFromBlob(blob, null, null);
-
-	api.updateScene(scene);
-	console.log("updated scene");
-}
-
 export default function ExampleApp({
 	initialData,
 	children,
@@ -141,9 +126,9 @@ export default function ExampleApp({
 	const saveMutation = useMutation({
 		mutationKey: ["saveDrawing"],
 		mutationFn: fetchSaveData,
-		onSuccess: (data) => {
-      console.log("data", data);
+		onSuccess: (data, variables, context) => {
 			queryClient.invalidateQueries({ queryKey: ["loadDrawings"] }); // refresh list
+			setCurrentSceneID(parseInt(data, 10));
 		},
 	});
 
@@ -176,6 +161,38 @@ export default function ExampleApp({
 			queryClient.invalidateQueries({ queryKey: ["loadDrawings"] }); // refresh list
 		},
 	});
+
+	async function loadNewScene(id: number, data: string) {
+		if (!excalidrawAPI) {
+			console.error("api is null");
+			return;
+		}
+		if (currentSceneID) {
+			const item = drawingsItems.find(
+				(item: Drawing) => item.id === currentSceneID,
+			);
+			if (item) {
+				updateDrawing(
+					updateMutation,
+					item,
+					excalidrawAPI.getSceneElements(),
+					excalidrawAPI.getAppState(),
+					excalidrawAPI.getFiles(),
+				);
+			}
+		}
+		// update to new scene id
+		setCurrentSceneID(id);
+
+		const blob = new Blob([data], {
+			type: MIME_TYPES.excalidraw,
+		});
+
+		const scene = await loadFromBlob(blob, null, null);
+
+		excalidrawAPI.updateScene(scene);
+		console.log("updated scene");
+	}
 
 	useHandleLibrary({ excalidrawAPI });
 
@@ -229,8 +246,13 @@ export default function ExampleApp({
 					<DrawingsList
 						items={drawingsItems}
 						onSubmit={(id: number, item: string) => {
-							setCurrentSceneID(id);
-							return loadNewScene(item, excalidrawAPI);
+							return loadNewScene(id, item);
+						}}
+						onDelete={(id: number) => {
+							if (id === currentSceneID) {
+								setCurrentSceneID(null);
+							}
+							return deleteMutation.mutate({ id });
 						}}
 						onClose={() => setShowSaved(!showSaved)}
 					/>
@@ -261,37 +283,15 @@ export default function ExampleApp({
 					/>
 				)}
 				<span>{currentSceneID}</span>
-				<button
+				<Button
 					onClick={() => {
 						setShowSaved(!showSaved);
 					}}
 					style={{ height: "2.5rem" }}
 				>
-					show drawings
-				</button>
-				<button
-					type="button"
-					onClick={() => {
-						if (!excalidrawAPI) {
-							return;
-						}
-						const item: Drawing = drawingsItems.find(
-							(item: Drawing) => item.id === currentSceneID,
-						);
-            console.log(item);
-						updateDrawing(
-							updateMutation,
-							item,
-							excalidrawAPI.getSceneElements(),
-							excalidrawAPI.getAppState(),
-							excalidrawAPI.getFiles(),
-						);
-					}}
-					style={{ height: "2.5rem" }}
-				>
-					save drawing
-				</button>
-				<button
+					Show Drawings
+				</Button>
+				<Button
 					type="button"
 					onClick={() => {
 						if (!excalidrawAPI) {
@@ -301,8 +301,8 @@ export default function ExampleApp({
 					}}
 					style={{ height: "2.5rem" }}
 				>
-					new scene
-				</button>
+					New Scene
+				</Button>
 			</>
 		);
 	};

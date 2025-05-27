@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type HttpError struct {
@@ -105,5 +107,26 @@ func HandleLoad(db Database) http.HandlerFunc {
 		} else {
 			http.Error(w, "Method not supported", 400)
 		}
+	}
+}
+
+func HandleDelete(db Database) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		id := vars["id"]
+
+		intId, err := strconv.Atoi(id)
+		if err != nil {
+			writeError(w, "Error id is not a number", err)
+			return
+		}
+		err = db.DeleteDrawing(intId)
+		if err != nil {
+			writeError(w, "Error deleting drawing", err)
+			return
+		}
+		slog.Info(fmt.Sprintf("deleted item %d", intId))
+
+		w.WriteHeader(204)
 	}
 }

@@ -20,15 +20,14 @@ export interface SaveDataProps {
 }
 
 export interface DeleteDataProps {
-  id: number
+	id: number;
 }
 
 export interface UpdateDataProps {
-  item: Drawing;
+	item: Drawing;
 }
 
-
-export async function fetchSaveData({title, data}: SaveDataProps) {
+export async function fetchSaveData({ title, data }: SaveDataProps) {
 	const body = JSON.stringify({
 		title: title,
 		created: new Date().toISOString(),
@@ -39,9 +38,10 @@ export async function fetchSaveData({title, data}: SaveDataProps) {
 	if (!res.ok) {
 		throw new Error("Failed to save data");
 	}
+	return res.json();
 }
 
-export async function fetchUpdateData({item}: UpdateDataProps) {
+export async function fetchUpdateData({ item }: UpdateDataProps) {
 	const body = JSON.stringify(item);
 	const res = await fetch(`/api/update`, { method: "PUT", body });
 	if (!res.ok) {
@@ -49,7 +49,7 @@ export async function fetchUpdateData({item}: UpdateDataProps) {
 	}
 }
 
-export async function fetchDeleteData({id}: DeleteDataProps) {
+export async function fetchDeleteData({ id }: DeleteDataProps) {
 	const res = await fetch(`/api/delete/${id}`, { method: "DELETE" });
 	if (!res.ok) {
 		throw new Error("Failed to delete data");
