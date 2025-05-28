@@ -191,7 +191,6 @@ export default function ExampleApp({
 		const scene = await loadFromBlob(blob, null, null);
 
 		excalidrawAPI.updateScene(scene);
-		console.log("updated scene");
 	}
 
 	useHandleLibrary({ excalidrawAPI });
@@ -530,7 +529,7 @@ export default function ExampleApp({
 	};
 
 	return (
-		<div className="App" ref={appRef}>
+		<div className="ExcalidrawApp" ref={appRef}>
 			<div className="excalidraw-wrapper">
 				{renderExcalidraw(children)}
 				{Object.keys(commentIcons || []).length > 0 && renderCommentIcons()}

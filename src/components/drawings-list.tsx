@@ -8,6 +8,14 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useMemo, useState } from "react";
 import type { Drawing } from "@/lib/types";
+import {
+	Table,
+	TableHeader,
+	TableBody,
+	TableRow,
+	TableHead,
+	TableCell,
+} from "./ui/table";
 
 interface DrawingsListParms {
 	items: Drawing[];
@@ -81,7 +89,7 @@ export default function DrawingsList({
 	});
 	return (
 		<>
-			<div className="border rounded fixed top-10 right-10 bg-gray-200 left-10 bottom-10 overflow-scroll w-1/2 z-10">
+			<div className="border rounded-2xl fixed top-10 right-10 bg-gray-200 left-10 bottom-10 overflow-scroll w-1/2 z-10 p-4">
 				<div className="flex">
 					<Input
 						placeholder="Search..."
@@ -89,38 +97,60 @@ export default function DrawingsList({
 					/>
 					<Button onClick={onClose}>Close</Button>
 				</div>
-				<div className="border rounded border-gray-200 p-4">
-					<table className="w-full text-left">
-						<thead className="bg-gray-400">
+				<div className="py-4">
+					<Table className="border-gray-200 overflow-hidden">
+						<TableHeader className="bg-gray-100">
 							{table.getHeaderGroups().map((headerGroup) => (
-								<tr key={headerGroup.id}>
+								<TableRow key={headerGroup.id}>
 									{headerGroup.headers.map((header) => (
-										<th key={header.id} className="p-2 font-medium">
-											{flexRender(
-												header.column.columnDef.header,
-												header.getContext(),
-											)}
-										</th>
+										<TableHead
+											key={header.id}
+											className="p-3 text-gray-600 font-semibold whitespace-normal break-words"
+										>
+											{header.isPlaceholder
+												? null
+												: flexRender(
+														header.column.columnDef.header,
+														header.getContext(),
+													)}
+										</TableHead>
 									))}
-								</tr>
+								</TableRow>
 							))}
-						</thead>
+						</TableHeader>
 
-						<tbody>
-							{table.getRowModel().rows.map((row) => (
-								<tr key={row.id} className="border-t hover:bg-gray-50">
-									{row.getVisibleCells().map((cell) => (
-										<td key={cell.id} className="p-2">
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
-											)}
-										</td>
-									))}
-								</tr>
-							))}
-						</tbody>
-					</table>
+						<TableBody>
+							{table.getRowModel().rows.length ? (
+								table.getRowModel().rows.map((row) => (
+									<TableRow
+										key={row.id}
+										className="transition hover:bg-muted/50 cursor-pointer"
+									>
+										{row.getVisibleCells().map((cell) => (
+											<TableCell
+												key={cell.id}
+												className="p-3 whitespace-normal break-words"
+											>
+												{flexRender(
+													cell.column.columnDef.cell,
+													cell.getContext(),
+												)}
+											</TableCell>
+										))}
+									</TableRow>
+								))
+							) : (
+								<TableRow>
+									<TableCell
+										colSpan={table.getAllColumns().length}
+										className="text-center p-3 whitespace-normal break-words"
+									>
+										No results.
+									</TableCell>
+								</TableRow>
+							)}
+						</TableBody>
+					</Table>
 				</div>
 			</div>
 		</>
