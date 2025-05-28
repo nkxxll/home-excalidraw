@@ -79,7 +79,6 @@ function updateDrawing(
 		created: item.created,
 		modified: new Date().toISOString(),
 	};
-	console.log("newItem", newItem);
 	mutation.mutate({ item: newItem });
 }
 
@@ -167,6 +166,7 @@ export default function ExampleApp({
 			console.error("api is null");
 			return;
 		}
+    setShowSaved(false);
 		if (currentSceneID) {
 			const item = drawingsItems.find(
 				(item: Drawing) => item.id === currentSceneID,
